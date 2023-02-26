@@ -1,0 +1,304 @@
+#Loading Libraries
+library(GGally)
+library(Hotelling)
+library(car)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+
+#Loading the dataset
+library(readr)
+diabetes <- read_csv("D:/MITA/SPRING/Multivariate_Analysis/Homework/Homework_3/diabetes.csv")
+View(diabetes)
+str(diabetes)
+diabetes
+
+#Dropping the outcome columns
+diab <- diabetes[, -c(9,10)]
+
+#Calculating the mean of each variables
+colMeans(diab)
+
+#Covariance Matrix
+cov(diab)
+
+#Correlation Matrix
+cor(diab)
+
+#Boxplot
+boxplot(diabetes[,1:8])
+
+attach(diabetes)
+
+#Plots
+diab1 <- data.frame(as.numeric(rownames(diabetes)),diabetes[,1:8])
+labs.diagonal <- c("Pregnancies","Glucose","Blood Pressure","Skin Thicknes","Insulin","BMI", "Diabetes Pedigree Function", "Age")
+
+plot(Glucose, BloodPressure,xlab="Glucose",ylab="Blood Pressure",pch=c(16,1))
+
+#Correlations
+pairs(diabetes[,1:8])
+
+#Scatterplot Matrix using GGally
+ggscatmat(diabetes, columns = 1:8, color = "Cat_Outcome")
+
+#Plots using ggplot
+ggplot(diabetes, aes(x=Age, y=BloodPressure)) + geom_point()
+
+ggplot(diabetes, aes(x=Age, y=Glucose)) + facet_wrap("Cat_Outcome") + geom_point()
+ggplot(diabetes, aes(x=Age, y=SkinThickness)) + facet_wrap("Cat_Outcome") + geom_point()
+ggplot(diabetes, aes(x=Age, y=Insulin)) + facet_wrap("Cat_Outcome") + geom_point()
+ggplot(diabetes, aes(x=Age, y=BMI)) + facet_wrap("Cat_Outcome") + geom_point()
+
+#Bar Chart using ggplot
+ggplot(diabetes, aes(Cat_Outcome)) + geom_bar(position = "stack")
+ggplot(diabetes, aes(Pregnancies)) + geom_bar(position = "stack")
+
+#Histogram using ggplot
+ggplot(diabetes, aes(Age)) + geom_histogram()
+
+#Regression using ggplot
+ggplot(diabetes, aes(x=Age, y=BloodPressure)) + geom_point() + geom_smooth(method=lm)
+ggplot(diabetes, aes(x=Age, y=Glucose)) + geom_point() + stat_smooth()
+
+#Violin Plot using ggplot
+ggplot(diabetes, aes(x=Age, y=BloodPressure)) + geom_violin()
+ggplot(diabetes, aes(x=Age, y=BMI)) + geom_violin()
+
+#Factoring the Cat_Outcome column 
+diabetes$Cat_Outcome <- as.factor(diabetes$Cat_Outcome)
+str(diabetes)
+View(diabetes)
+options(scipen = 999)
+
+#T-tests for Diabetic and Non-diabetic person
+with(data = diabetes, t.test(Pregnancies[Cat_Outcome=="D"], Pregnancies[Cat_Outcome=="ND"],var.equal = TRUE))
+with(data = diabetes, t.test(Glucose[Cat_Outcome=="D"], Glucose[Cat_Outcome=="ND"],var.equal = TRUE))
+with(data = diabetes, t.test(BloodPressure[Cat_Outcome=="D"], BloodPressure[Cat_Outcome=="ND"],var.equal = TRUE))
+with(data = diabetes, t.test(SkinThickness[Cat_Outcome=="D"], SkinThickness[Cat_Outcome=="ND"],var.equal = TRUE))
+with(data = diabetes, t.test(Insulin[Cat_Outcome=="D"], Insulin[Cat_Outcome=="ND"],var.equal = TRUE))
+with(data = diabetes, t.test(BMI[Cat_Outcome=="D"], BMI[Cat_Outcome=="ND"],var.equal = TRUE))
+with(data = diabetes, t.test(DiabetesPedigreeFunction[Cat_Outcome=="D"], DiabetesPedigreeFunction[Cat_Outcome=="ND"],var.equal = TRUE))
+with(data = diabetes, t.test(Age[Cat_Outcome=="D"], Age[Cat_Outcome=="ND"],var.equal = TRUE))
+
+#Hotelling Test
+diab2 <- hotelling.test(Pregnancies + Glucose + BloodPressure + SkinThickness + Insulin + BMI + DiabetesPedigreeFunction + Age ~ Cat_Outcome, data = diabetes)
+cat("T2 statistic =",diab2$stat[[1]],"\n")
+print(diab2)
+
+#F-test
+var.test(Glucose[Cat_Outcome == "D"], Glucose[Cat_Outcome == "ND"])
+
+#Levene Test
+leveneTest(Pregnancies ~ Cat_Outcome, data = diabetes)
+leveneTest(Glucose ~ Cat_Outcome, data = diabetes)
+leveneTest(BloodPressure ~ Cat_Outcome, data = diabetes)
+leveneTest(SkinThickness ~ Cat_Outcome, data = diabetes)
+leveneTest(Insulin ~ Cat_Outcome, data = diabetes)
+leveneTest(BMI ~ Cat_Outcome, data = diabetes)
+leveneTest(DiabetesPedigreeFunction ~ Cat_Outcome, data = diabetes)
+leveneTest(Age ~ Cat_Outcome, data = diabetes)
+
+#ANOVA
+summary(aov(Pregnancies ~ Cat_Outcome))
+summary(aov(Glucose ~ Cat_Outcome))
+summary(aov(BloodPressure ~ Cat_Outcome))
+summary(aov(SkinThickness ~ Cat_Outcome))
+summary(aov(Insulin ~ Cat_Outcome))
+summary(aov(BMI ~ Cat_Outcome))
+summary(aov(DiabetesPedigreeFunction ~ Cat_Outcome))
+summary(aov(Age ~ Cat_Outcome))
+
+#Calculating the correlations between the measurements
+cor(diabetes[,1:8])
+str(diabetes)
+
+#Principle Componeny Analysis (PCA)
+diab_pca <- prcomp(diabetes[,-c(9,10)], scale=TRUE)
+diab_pca
+summary(diab_pca)
+
+#Eigen Values
+eigen_diab <- diab_pca$sdev^2
+eigen_diab
+
+names(eigen_diab) <- paste("PC",1:8,sep="")
+eigen_diab
+
+sumlambdas <- sum(eigen_diab)
+sumlambdas
+
+propvar <- eigen_diab/sumlambdas
+propvar
+
+cumvar_diab <- cumsum(propvar)
+cumvar_diab
+
+matlambdas <- rbind(eigen_diab,propvar,cumvar_diab)
+rownames(matlambdas) <- c("Eigenvalues","Prop. variance","Cum. prop. variance")
+round(matlambdas,4)
+summary(diab_pca)
+diab_pca$rotation
+print(diab_pca)
+
+#Identifying the scores by Cat_Outcome
+diab_pca$x
+diabtyp_pca <- cbind(data.frame(Cat_Outcome),diab_pca$x)
+diabtyp_pca
+
+#Means of Scores for all PC's by Cat_Outcome
+tabmeansPC <- aggregate(diabtyp_pca[,2:9],by=list(Cat_Outcome=diabetes$Cat_Outcome),mean)
+tabmeansPC
+
+#Reversing the order
+tabmeansPC <- tabmeansPC[rev(order(tabmeansPC$Cat_Outcome)),]
+tabmeansPC
+
+#Switching columns to rows and vice-versa
+tabfmeans <- t(tabmeansPC[,-1])
+tabfmeans
+
+#Specifing the actual column name as "D" and "ND"
+colnames(tabfmeans) <- t(as.vector(tabmeansPC[1]$Cat_Outcome))
+tabfmeans
+
+#Standard Deviation of Scores for all PC's by Cat_Outcome
+tabsdsPC <- aggregate(diabtyp_pca[,2:9],by=list(Cat_Outcome=diabetes$Cat_Outcome),sd)
+tabfsds <- t(tabsdsPC[,-1])
+colnames(tabfsds) <- t(as.vector(tabsdsPC[1]$Cat_Outcome))
+tabfsds
+
+#T-Test with Principle Component
+t.test(PC1~diabetes$Cat_Outcome,data=diabtyp_pca)
+t.test(PC2~diabetes$Cat_Outcome,data=diabtyp_pca)
+t.test(PC3~diabetes$Cat_Outcome,data=diabtyp_pca)
+t.test(PC4~diabetes$Cat_Outcome,data=diabtyp_pca)
+t.test(PC5~diabetes$Cat_Outcome,data=diabtyp_pca)
+t.test(PC6~diabetes$Cat_Outcome,data=diabtyp_pca)
+t.test(PC7~diabetes$Cat_Outcome,data=diabtyp_pca)
+t.test(PC8~diabetes$Cat_Outcome,data=diabtyp_pca)
+
+#F-Test with Principle Component
+var.test(PC1~diabetes$Cat_Outcome,data=diabtyp_pca)
+var.test(PC2~diabetes$Cat_Outcome,data=diabtyp_pca)
+var.test(PC3~diabetes$Cat_Outcome,data=diabtyp_pca)
+var.test(PC4~diabetes$Cat_Outcome,data=diabtyp_pca)
+var.test(PC5~diabetes$Cat_Outcome,data=diabtyp_pca)
+var.test(PC6~diabetes$Cat_Outcome,data=diabtyp_pca)
+var.test(PC7~diabetes$Cat_Outcome,data=diabtyp_pca)
+var.test(PC8~diabetes$Cat_Outcome,data=diabtyp_pca)
+
+#Plotting the scores of PC1 and PC2
+plot(diabtyp_pca$PC1, diabtyp_pca$PC2, pch=ifelse(diabtyp_pca$Cat_Outcome == "S",1,16),xlab="PC1", ylab="PC2", main="768 patient against values for PC1 & PC2")
+abline(h=0, col = "blue")
+abline(v=0, col = "blue")
+legend("topright",cex = 0.5, legend=c("Diabetic","Non-diabetic"), pch=c(1,16))
+plot(eigen_diab, xlab = "Component number", ylab = "Component variance", type = "l", main = "Scree diagram")
+plot(log(eigen_diab), xlab = "Component number",ylab = "log(Component variance)", type="l",main = "Log(eigenvalue) diagram")
+print(summary(diab_pca))
+diag(cov(diab_pca$x))
+xlim <- range(diab_pca$x[,1])
+diab_pca$x[,1]
+diab_pca$x
+plot(diab_pca$x,xlim=xlim,ylim=xlim)
+diab_pca$rotation[,1]
+diab_pca$rotation
+plot(diabetes[,1:8])
+diab_pca$x
+plot(diab_pca)
+
+#Plotting correlation
+pairs.panels(diabetes[,1:8],
+             gap = 0,
+             bg = c("red", "blue")[diabetes$Cat_Outcome],
+             pch=21)
+
+pairs.panels(diab_pca$x,
+             gap=0,
+             bg = c("red", "blue")[diabetes$Cat_Outcome],
+             pch=21)
+
+fviz_eig(diab_pca, addlabels = TRUE)
+
+fviz_pca_var(diab_pca,col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+
+biplot(diab_pca)
+autoplot(diab_pca,
+         data = diabetes[,1:8],
+         loadings = TRUE,
+         labels = diabetes$Cat_Outcome)
+
+#Trying different PCA Methods
+res.pca <- PCA(diabetes[,1:8], graph = FALSE)
+print(res.pca)
+
+#Visualizing and interpreting PCA
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+
+var <- get_pca_var(res.pca)
+var
+
+#Coordinates
+head(var$coord)
+
+#Cos2
+head(var$cos2)
+
+#Contributions to Principle Component
+head(var$contrib)
+
+#Correlation Circle
+fviz_pca_var(res.pca, col.var = "red")
+
+#Quality of Representation
+corrplot(var$cos2, is.corr=FALSE)
+
+fviz_cos2(res.pca, choice = "var", axes = 1:2)
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE)
+
+# Change the transparency by cos2 values
+fviz_pca_var(res.pca, alpha.var = "cos2")
+corrplot(var$contrib, is.corr=FALSE)
+
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+
+fviz_pca_var(res.pca, alpha.var = "contrib")
+
+fviz_pca_ind(res.pca,
+             geom.ind = "point", # show points only (nbut not "text")
+             col.ind = diabetes$Cat_Outcome, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, # Concentration ellipses
+             legend.title = "Groups")
+
+fviz_pca_biplot(res.pca, 
+                # Individuals
+                geom.ind = "point",
+                fill.ind = diabetes$Cat_Outcome, col.ind = "black",
+                pointshape = 21, pointsize = 2,
+                palette = "jco",
+                addEllipses = TRUE,
+                # Variables
+                alpha.var ="contrib", col.var = "contrib",
+                gradient.cols = "RdYlBu",
+                
+                legend.title = list(fill = "Cat_Outcome", color = "Contrib",
+                                    alpha = "Contrib")
+)
