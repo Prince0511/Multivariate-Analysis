@@ -1,0 +1,107 @@
+---
+title: "Homework_4 EFA"
+author: "Prince Kheni"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+#Loading the dataset
+library(readr)
+wine <- read.csv("D:/MITA/SPRING/Multivariate_Analysis/Homework/Homework_4/wine.csv")
+View(wine)
+
+#Loading Libraries
+library(psych)
+library(GPArotation)
+
+attach(wine)
+
+#METHOD - 1
+#Using varimax rotate method
+fit.pc <- principal(wine[-1], nfactors=4, rotate="varimax")
+fit.pc
+
+#The output of fit.pc describes following:
+# h2 -> It is explained variance
+# u2 -> It is unxplained variance
+# If we add up h2 and u2 together, we get the total variance as 1.
+
+#Rounding fit.pc$values (Eigen Values) to 3 decimal places.
+round(fit.pc$values, 3)
+
+#Rounding fir.pc$values (Eigen Values).
+round(fit.pc$values)
+
+#Combining columns
+fit.pc$loadings
+
+#From the result we can make following conclusions:
+# RC1 shows the relation with Flavanoids, Total_Phenols, OD280, Proanthocyanins, and negative of Nonflavanoid_Phenols.
+# RC2 shows the relation with Magnesium and Color_Intensity.
+# RC3 shows the relation with Ash, and Ash_Alcanity.
+# RC4 shows the relation with Hue, negative of Malic_Acid, and negative of Color_Intensity.
+
+# Loadings with more digits
+for (i in c(1,3,2,4)) { print(fit.pc$loadings[[1,i]])}
+
+# Communalities
+fit.pc$communality
+
+# Rotated factor scores, Notice the columns ordering: RC1, RC4, RC2 and RC3
+fit.pc$scores
+
+#Factor Recommendation
+fa.parallel(wine)
+
+#Elbow can be seen at 3.
+
+#Correlations within Factors
+fa.plot(fit.pc)
+
+#Visualizaing the relationship
+fa.diagram(fit.pc)
+
+#Factor Recommendation for a simple structure
+vss(wine[-1])
+
+
+#METHOD - 2
+#Using oblimin rotate method
+fit.pc01 <- principal(wine[-1], nfactors=4, rotate="oblimin")
+fit.pc01
+
+
+#Rounding fit.pc$values (Eigen Values) to 3 decimal places.
+round(fit.pc01$values, 3)
+
+#Rounding fir.pc$values (Eigen Values).
+round(fit.pc01$values)
+
+#Combining columns
+fit.pc01$loadings
+
+#From the result we can make following conclusions:
+# TC1 shows the relation with Proanthocyanins, Flavanoids, Total_Phenols, OD280, and negative of Nonflavanoid_Phenols.
+# TC2 shows the relation with Proline, Magnesium, and Color_Intensity.
+# TC3 shows the relation with Ash, and Ash_Alcanity.
+# TC4 shows the relation with Malic_Acid, Color_Intensity, and negative of Hue.
+
+# Loadings with more digits
+for (i in c(1,3,2,4)) { print(fit.pc01$loadings[[1,i]])}
+
+# Communalities
+fit.pc01$communality
+
+# Rotated factor scores, Notice the columns ordering: RC1, RC4, RC2 and RC3
+fit.pc01$scores
+
+#Correlations within Factors
+fa.plot(fit.pc01)
+
+#Visualizaing the relationship
+fa.diagram(fit.pc01)
+
+```
+
