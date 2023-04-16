@@ -1,0 +1,181 @@
+---
+title: "Multiple Regression"
+author: "Prince Kheni"
+date: "2023-04-16"
+output: html_document
+---
+
+```{r}
+#Question trying to answer using Multiple Regression.
+#1. We are trying to predict the age of the person based on the pregnancies, glucose, blood pressure, insulin, etc.
+
+#Libraries
+library(GGally)
+library(readr)
+library(car)
+library(MASS)
+library(gvlma)
+library(leaps)
+library(relaimpo)
+
+#Loading the dataset
+diabetes <- read_csv("D:/MITA/SPRING/Multivariate_Analysis/Homework/Multiple Regression/diabetes.csv")
+View(diabetes)
+
+#Structure of the database
+str(diabetes)
+
+#Correlation of the variables among each other
+ggpairs(data=diabetes, title="Diabetes Data")
+ggcorr(data=diabetes, method = c("everything", "pearson"))
+
+# Fit a multiple linear regression model
+model_1 <- lm(Age ~ Pregnancies + Glucose + BloodPressure + SkinThickness + Insulin + BMI + DiabetesPedigreeFunction + Outcome, data = diabetes)
+
+# Print the summary of the model
+summary(model_1)
+
+#Brief Interpretation
+#The estimated coefficient for "Pregnancies" is 1.66541, which means that for every one-unit increase in the number of pregnancies, the predicted age increases by approximately 1.67 units.
+#The multiple R-squared is 0.3695, which means that the model explains about 37% of the variability in the age of individuals.
+#P-value (p-value: < 2.2e-16) suggests that the model is statistically significant, indicating that at least one of the predictor variables has a significant effect on the predicted age.
+#The estimated residual standard error is 9.369, which indicates the average difference between the observed and predicted age values is approximately 9.37 units.
+
+#Using some helper functions
+coefficients(model_1)
+#This shows the coefficients of each feature.
+
+confint(model_1, level=0.95)
+#It shows the confidence interval for the estimated coefficients or parameters.
+#We had set the level of confidence to 0.95 ( which is 95% ).
+
+fitted(model_1)
+#It gives the predicted age values by the logistic model for all the entries (rows).
+
+residuals(model_1)
+#It shows the difference between the observed (actual) value and predicted (fitted) value.
+
+#Anova Table
+anova(model_1)
+vcov(model_1)
+cov2cor(vcov(model_1))
+temp <- influence.measures(model_1)
+temp
+plot(model_1)
+
+#Brief Interpretation
+#The "Pregnancies", "Glucose", "BloodPressure", and "SkinThickness" variables are all highly significant with p-values less than 0.001.
+#The "Insulin", "BMI", "DiabetesPedigreeFunction", and "Outcome" variables have p-values greater than 0.05.
+
+#Assessing Outliers
+outlierTest(model_1)
+leveragePlots(model_1) 
+
+#Cook's D plot
+#Identify D values > 4/(n-k-1)
+cutoff <- 4/((nrow(diabetes)-length(model_1$coefficients)-2))
+plot(model_1, which=4, cook.levels=cutoff)
+abline(h=cutoff, col="red", lty=2)
+
+#Brief Interpretation
+#We are basically looking for the influential data points.
+#The horizontal red line shows the cutoff.
+#The points above the line indicates that those are influential data points and have negative impact on the regression model.
+
+# Influence Plot
+influencePlot(model_1, id.method="identify", main="Influence Plot", sub="Circle size is proportial to Cook's Distance" )
+
+#Normality of Residuals
+#qq plot for studentized resid
+qqPlot(model_1, main="QQ Plot")
+#We can say that the points are not following the normal distribution.
+#This is because the data points are not following the blue line.
+
+#Distribution of studentized residuals
+sresid <- studres(model_1)
+hist(sresid, freq=FALSE, main="Distribution of Studentized Residuals")
+xfit<-seq(min(sresid),max(sresid),length=40)
+yfit<-dnorm(xfit)
+lines(xfit, yfit)
+
+#Non-constant Error Variance to evaluate homoscedasticity
+ncvTest(model_1)
+
+#Brief Interpretation
+#The Chisquare value is 23.51724 and it is relatively high.
+#It indicates that there is a higher likelihood of heteroscedasticity in the residuals of the model.
+#Apart from that, the p-value is also very small, which also provides a strong evidence against NULL hypothesis, and tells us that there is likely heteroscedasticity present in the residuals of the model.
+
+#Plotting studentized residuals V/S fitted values
+spreadLevelPlot(model_1)
+
+#Multi-collinearity
+#Evaluating Collinearity
+#Variance Inflation Factors
+vif(model_1) 
+sqrt(vif(model_1)) > 2 
+#There are no variables that have signifcant multi-collinearity
+
+#Nonlinearity
+#Component + Residual plot
+crPlots(model_1)
+
+#Non-independence of Errors
+#Test for Autocorrelated Errors
+durbinWatsonTest(model_1)
+
+#Brief Interpretation
+#Durbin-Watson test is used to detect autocorrelation.
+#Estimated autocorrelation coefficent is -0.01344.
+#Durbin-Watson Statistics is 2.025006, which is close to expected value of 2 for no autocorrelation.
+#P-value (0.75) is also greater than 0.05, therefore we accept the NULL hypothesis and state that there is no autocorrelation in the residuals of the model.
+
+# Global test of model assumptions
+gvmodel <- gvlma(model_1)
+summary(gvmodel)
+model_1
+summary(model_1)
+model_2 <- lm(Age ~ Pregnancies + Glucose + BloodPressure + SkinThickness, data = diabetes)
+
+#Comparing both models
+anova(model_1, model_2)
+step <- stepAIC(model_1, direction="both")
+step$anova # display results
+
+leaps<-regsubsets(Age ~ Pregnancies + Glucose + BloodPressure + SkinThickness + Insulin,data=diabetes,nbest=10)
+#Results
+plot(leaps)
+plot(leaps,scale="r2")
+plot(leaps,scale="bic")
+summary(leaps)
+calc.relimp(model_1,type=c("lmg","last","first","pratt"), rela=TRUE)
+#Proportion of variance explained by model is 37.28%.
+
+# Bootstrap Measures of Relative Importance (1000 samples)
+boot <- boot.relimp(model_1, b = 1000, type = c("lmg", "last", "first", "pratt"), rank = TRUE, diff = TRUE, rela = TRUE)
+booteval.relimp(boot)
+plot(booteval.relimp(boot,sort=TRUE))
+summary(model_1)
+
+#Predicting the Age based on model_1 for some new data
+new_data <- data.frame(
+  Pregnancies = 3,
+  Glucose = 155,
+  BloodPressure = 72,
+  SkinThickness = 35,
+  Insulin = 10,
+  BMI = 33,
+  DiabetesPedigreeFunction = 0.55,
+  Outcome = 1
+) 
+
+# Replacing the values with the values of our test data
+predicted_age <- predict(model_1, newdata = new_data)
+print(predicted_age)
+
+#Brief Interpretation
+#By passing some random values (test data) on our model, the model predicted the age to be 34.5 years.
+
+
+```
+
