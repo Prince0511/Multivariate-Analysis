@@ -3,6 +3,7 @@ This dataset is originally from the National Institute of Diabetes and Digestive
 Link: https://www.kaggle.com/datasets/akshaydattatraykhare/diabetes-dataset
 
 Data Dictionary:
+
 Pregnancies -> This field represents the number of times a person has been pregnant. It is a discrete variable with integer values ranging from 0 to a positive integer.	
 Glucose -> This field represents the glucose level (measured in mg/dL) of the person. It is a continuous variable with numeric values representing the person's blood glucose concentration.
 Blood Pressure -> This field represents the glucose level (measured in mg/dL) of the person. It is a continuous variable with numeric values representing the person's blood glucose concentration.
