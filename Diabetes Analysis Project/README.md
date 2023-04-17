@@ -3,6 +3,8 @@ Source of dataset:
 This dataset is originally from the National Institute of Diabetes and Digestive and Kidney. The objective of the dataset is to diagnostically predict whether a patient has diabetes, based on certain diagnostic measurements included in the dataset. Several constraints were placed on the selection of these instances from a larger database. In particular, all patients here are females at least 21 years old of Pima Indian heritage.
 Link: https://www.kaggle.com/datasets/akshaydattatraykhare/diabetes-dataset
 
+
+
 Data Dictionary:
 
 Pregnancies -> This field represents the number of times a person has been pregnant. It is a discrete variable with integer values ranging from 0 to a positive integer.	
@@ -25,7 +27,10 @@ Age	-> This field represents the age (in years) of the person. It is a discrete 
 Outcome	-> This field represents the outcome of the person's diabetes diagnosis. It is a binary variable with values 0 or 1, where 0 indicates no diabetes and 1 indicates diabetes.
 
 
+
+
 Questions that I tried to answer (Hypothesis):
+
 Principal Component Analysis (PCA):
 1.	How many variables we can reduce to, by using Principal Component Analysis?
 2.	Are we able to identify the contribution of different features towards the overall variability or explained variance in the diabetes dataset?
