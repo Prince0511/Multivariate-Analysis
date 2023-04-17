@@ -1,0 +1,168 @@
+---
+title: "Logistic Regression"
+author: "Prince Kheni"
+date: "2023-04-14"
+output: html_document
+---
+
+```{r}
+#Question trying to answer using Logistic Regression.
+#1. We are trying to predict the Outcome (diabetic or non-diabetic) of the person based on the other features in the dataset.
+
+#Libraries
+library(ggplot2)
+library(cowplot)
+#library(regclass)
+library(caret)
+library(e1071)
+library(pROC)
+library(readr)
+
+#Loading the dataset
+diabetes <- read_csv("D:/MITA/SPRING/Multivariate_Analysis/Homework/Logistic Regression/diabetes.csv")
+View(diabetes)
+str(diabetes)
+
+#Since "Outcome" is categorical variable, and it is integer.
+#0 means a person is non-diabetic.
+#1 means a person is diabetic.
+#Converting it into factor.
+diabetes$Outcome <- as.factor(diabetes$Outcome)
+
+#Logistic Regression with Glucose variable
+logistic <- glm(Outcome ~ Glucose, data = diabetes, family = "binomial")
+summary(logistic)
+
+#Logistic Regression with all variables
+logistic_simple <- glm(Outcome ~ ., data=diabetes, family="binomial")
+summary(logistic_simple)
+
+#Brief Interpretation:
+#The intercept is the log(odds) a person will be diabetic.
+#Each one unit change in the number of pregnancies will increase the log odds of getting diabetes by 0.123.
+#Each one unit change in the glucose level will increase the log odds of getting diabetes by 0.0351.
+#Even the p-value states that, both these attributes are quite significant in determining the diabetes.
+#The interpretation of Blood Pressure and Insulin is different.
+#Getting Blood Pressure and Insulin change by one unit will decrease the log odds of getting diabetes by -0.0132 and -0.00119 respectively.
+#Difference between Null deviance and Residual deviance tells us that the model is a good fit.
+#Greater the difference means better the model.
+
+#Prediction by Logistic Regression
+#We will be able to see the probabilities of each patient's outcome predicted by Logistic Regression.
+predicted.data <- data.frame(probability.of.Outcome=logistic_simple$fitted.values)
+predicted.data
+
+#Rearranging the rows of the predicted data based on the values in the probability.of.Outcome column in ascending order.
+#Adding a new column called rank to the predicted data.
+predicted.data <- data.frame(probability.of.Outcome=logistic_simple$fitted.values,Outcome=diabetes$Outcome)
+predicted.data <- predicted.data[order(predicted.data$probability.of.Outcome, decreasing=FALSE),]
+predicted.data$rank <- 1:nrow(predicted.data)
+
+#Lastly, we can plot the predicted probabilities for each sample having diabetes and color by whether or not they actually had diabetes.
+ggplot(data=predicted.data, aes(x=rank, y=probability.of.Outcome)) +
+geom_point(aes(color=Outcome), alpha=1, shape=4, stroke=2) +
+xlab("Index") +
+ylab("Predicted probability of getting diabetes")
+
+#Brief Interpretation:
+#We know that as probability of diabetes increases, a person has greater chance of having a diabetes and it is showed with blue color.
+#Similarly, a person having less probability of diabetes, has less chance of having it.
+#In our case, 0.50 (approximately from the graph), can be identified as the cut-off or threshold of having a diabetes and not having diabetes.
+
+#From Caret
+pdata <- predict(logistic_simple,newdata=diabetes,type="response" )
+pdata
+diabetes$Outcome
+pdataF <- as.factor(ifelse(test=as.numeric(pdata>0.5) == 1, yes="1", no="0"))
+pdataF
+
+#Confusion Matrix
+confusionMatrix(pdataF, diabetes$Outcome)
+
+#Brief Interpretation
+#445 + 156 = 601 were predicted as 0 or 1 correctly (diagonal)
+#55 + 112 = 167 were predicted incorrectly (off-diagonal).
+#The accuracy is reported as 0.7826, which means that the model correctly predicted around 78.26% of the instances.
+#The NIR is reported as 0.651, which is the accuracy that would be achieved by always predicting class 0.
+#A higher kappa value indicates a better agreement between the model's predictions and the actual values. 
+#In our case, the kappa is reported as 0.4966, which is not as much good as expected.
+#Sensitivity is reported as 0.8900, indicating that the model correctly predicted around 89.00% of the instances of class 1.
+#Specificity is reported as 0.5821, indicating that the model correctly predicted around 58.21% of the instances of class 0.
+#Balanced Accuracy is the average of Sensitivity and Specificity.
+#We got balanced accuracy as 0.7360.
+
+#ROC
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE)
+par(pty = "s")
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE)
+
+#Brief Interpretation
+#ROC curve is a graphical plot which shows the trade-off between the true positive rate (Sensitivity) and the false positive rate (Specificity).
+#Higher value indicates better overall model performance.
+#The AUC is reported as 0.8394, indicating that the model has good discriminatory power with an AUC value close to 1, suggesting that it can effectively distinguish between the two classes (0 and 1) based on the predicted probabilities from the logistic regression model.
+
+#To use 1-specificity (i.e. the False Positive Rate) on the x-axis, set "legacy.axes" to TRUE.
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE, legacy.axes=TRUE)
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage")
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4)
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4)
+
+#If we want to find out the optimal threshold we can store the data used to make the ROC graph in a variable.
+roc.info <- roc(diabetes$Outcome,logistic_simple$fitted.values, legacy.axes=TRUE)
+str(roc.info)
+
+# TPP = True Positive Percentage
+# FPP = False Positive Percentage
+roc.df <- data.frame(tpp=roc.info$sensitivities*100, fpp=(1 - roc.info$specificities)*100,thresholds=roc.info$thresholds)
+roc.df
+head(roc.df)
+
+#head() will show us the values for the upper right-hand corner of the ROC graph, when the threshold is so low (negative infinity) that every single sample is called "obese".
+#Thus TPP = 100% and FPP = 100%.
+
+tail(roc.df) 
+
+#tail() will show us the values for the lower left-hand corner of the ROC graph, when the threshold is so high (infinity) that every single sample is called "not obese".
+#Thus, TPP = 0% and FPP = 0%.
+
+#Now let's look at the thresholds between TPP 60% and 80%.
+roc.df[roc.df$tpp > 60 & roc.df$tpp < 80,]
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, percent=TRUE)
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, percent=TRUE, print.auc=TRUE)
+roc(diabetes$Outcome,logistic_simple$fitted.values,plot=TRUE, legacy.axes=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, percent=TRUE, print.auc=TRUE, partial.auc=c(100, 90), auc.polygon = TRUE, auc.polygon.col = "#377eb822", print.auc.x=45)
+
+# Lets do two ROC plots to understand which model is better
+roc(diabetes$Outcome,logistic_simple$fitted.values, plot=TRUE, legacy.axes=TRUE, percent=TRUE, xlab="False Positive Percentage", ylab="True Postive Percentage", col="#377eb8", lwd=4, print.auc=TRUE)
+
+#Basic Interpretation
+#The AUC in terms of percentage for logistic_simple (with all variables) is 83.9% (indicated by blue color).
+
+# Lets add the other graph
+plot.roc(diabetes$Outcome,logistic$fitted.values, percent=TRUE, col="#4daf4a", lwd=4, print.auc=TRUE, add=TRUE, print.auc.y=40)
+legend("bottomright", legend=c("Simple", "Non Simple"), col=c("#377eb8", "#4daf4a"), lwd=4) 
+
+#Basic Interpretation
+#The AUC in terms of percentage for logistic (with Glucose) is 78.8% (indicated by green color).
+
+
+#Predicting the Outcome based on our logistic model for some new data
+new_data <- data.frame(
+  Pregnancies = 0,
+  Glucose = 135,
+  BloodPressure = 92,
+  SkinThickness = 25,
+  Insulin = 0,
+  BMI = 45,
+  DiabetesPedigreeFunction = 0.67,
+  Age = 40
+) 
+
+# Replacing the values with the values of our test data
+predicted_outcome <- predict(logistic_simple, newdata = new_data)
+print(predicted_outcome)
+
+#Brief Interpretation
+#By passing some random values (test data) on our model, the model predicted the outcome probability to be 0.399.
+#This means that, the person is less likely or does not have the diabetes based on our model's output.
+```
+

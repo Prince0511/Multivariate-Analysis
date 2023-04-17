@@ -1,0 +1,421 @@
+#Question trying to answer using Principal Component Analysis.
+#1. We have 8 variables (excluding Outcome). The question we are trying to answer is, to how many variables we can reduce by using Principal Component Analysis? 
+
+#Loading Libraries
+library(GGally)
+library(Hotelling)
+library(car)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+library(readr)
+
+#Loading and viewing structure of the dataset
+diabetes <- read_csv("D:/MITA/SPRING/Multivariate_Analysis/Homework/Principal Component Analysis/diabetes.csv")
+View(diabetes)
+str(diabetes)
+
+#Dropping the "Outcome" column
+new_diabetes <- diabetes[, -c(9)]
+head(new_diabetes)
+str(new_diabetes)
+#Calculating the mean of each variables
+colMeans(new_diabetes)
+#It shows mean of each variable.
+
+#Covariance Matrix
+cov(new_diabetes)
+#It shows co-variance of each variable against each.
+
+#Correlation Matrix
+cor(new_diabetes)
+#It shows correlation of each variable against each.
+
+#Boxplot
+boxplot(new_diabetes)
+#It shows the boxplot of each variable.
+#Black line in the middle indicate the median, and any data that are outside of whisker are considered as potential outliers.
+
+#Plots
+diabetes_plot_1 <- data.frame(as.numeric(rownames(new_diabetes)),new_diabetes[,1:8])
+labs.diagonal <- c("Pregnancies","Glucose","Blood Pressure","Skin Thicknes","Insulin","BMI", "Diabetes Pedigree Function", "Age")
+plot(new_diabetes$Glucose, new_diabetes$BloodPressure, xlab="Glucose", ylab="Blood Pressure",pch=c(16,1))
+
+#Brief Interpretation
+#We can see that most of the data is cluttered at one place.
+#Few points can be seen that has glucose value to be 0, since that is not possible in real scenario, it could be classified as outliers.
+#Even, some of the points has blood pressure value to be 0, and this is also not possible, so we can classify those points as outliers.
+
+#Correlations Plot among each variable
+pairs(new_diabetes)
+#We can infer many things from this plot and one of them is that when glucose level increase, insulin level also increases.
+#Therefore, we can say that both of them are positively correlated.
+
+#Scatterplot Matrix using GGally
+ggscatmat(new_diabetes)
+ggscatmat(diabetes, color = "Outcome")
+
+#Plots using ggplot library
+ggplot(new_diabetes, aes(x=Age, y=BloodPressure)) + geom_point()
+ggplot(diabetes, aes(x=Age, y=Glucose)) + facet_wrap("Outcome") + geom_point()
+ggplot(diabetes, aes(x=Age, y=SkinThickness)) + facet_wrap("Outcome") + geom_point()
+ggplot(diabetes, aes(x=Age, y=Insulin)) + facet_wrap("Outcome") + geom_point()
+ggplot(diabetes, aes(x=Age, y=BMI)) + facet_wrap("Outcome") + geom_point()
+
+#Bar Chart using ggplot
+ggplot(diabetes, aes(Outcome)) + geom_bar(position = "stack")
+ggplot(diabetes, aes(Pregnancies)) + geom_bar(position = "stack")
+
+#Histogram using ggplot
+ggplot(diabetes, aes(Age)) + geom_histogram()
+#The histogram seems to be right skewed.
+
+#Regression using ggplot
+ggplot(diabetes, aes(x=Age, y=BloodPressure)) + geom_point() + geom_smooth(method=lm)
+ggplot(diabetes, aes(x=Age, y=Glucose)) + geom_point() + stat_smooth()
+
+#Violin Plot using ggplot
+ggplot(diabetes, aes(x=Age, y=BloodPressure)) + geom_violin()
+ggplot(diabetes, aes(x=Age, y=BMI)) + geom_violin()
+
+#Factoring the Outcome column 
+diabetes$Outcome <- as.factor(diabetes$Outcome)
+str(diabetes)
+View(diabetes)
+options(scipen = 999)
+
+#T-tests for Diabetic and Non-diabetic person
+with(data = diabetes, t.test(Pregnancies[Outcome=="1"], Pregnancies[Outcome=="0"],var.equal = TRUE))
+with(data = diabetes, t.test(Glucose[Outcome=="1"], Glucose[Outcome=="0"],var.equal = TRUE))
+with(data = diabetes, t.test(BloodPressure[Outcome=="1"], BloodPressure[Outcome=="0"],var.equal = TRUE))
+with(data = diabetes, t.test(SkinThickness[Outcome=="1"], SkinThickness[Outcome=="0"],var.equal = TRUE))
+with(data = diabetes, t.test(Insulin[Outcome=="1"], Insulin[Outcome=="0"],var.equal = TRUE))
+with(data = diabetes, t.test(BMI[Outcome=="1"], BMI[Outcome=="0"],var.equal = TRUE))
+with(data = diabetes, t.test(DiabetesPedigreeFunction[Outcome=="1"], DiabetesPedigreeFunction[Outcome=="0"],var.equal = TRUE))
+with(data = diabetes, t.test(Age[Outcome=="1"], Age[Outcome=="0"],var.equal = TRUE))
+
+#Brief Interpretation
+#For t-test of Blood Pressure, the p-value is 0.07151, which indicates that the observed difference in means is not statistically significant.
+#Other than that, all of the other variables t-test has p-value less than 0.05.
+#Sample estimate provides the mean of the group corresponding to "Outcome" level "1", and the mean of the group corresponding to "Outcome" level "0".
+
+#Hotelling Test
+hott_diabates <- hotelling.test(Pregnancies + Glucose + BloodPressure + SkinThickness + Insulin + BMI + DiabetesPedigreeFunction + Age ~ Outcome, data = diabetes)
+cat("T2 statistic =",hott_diabates$stat[[1]],"\n")
+print(hott_diabates)
+
+#Brief Interpretation
+#It is a multivariate statistical test used to determine if there are statistically significant differences between the means of two or more multivariate datasets.
+#Test Statistics for our test is 333.3949, which represents Hotelling's T-squared test statistics.
+#P-value in our case is 0, which means that the test statistic is extremely unlikely to occur by chance under the null hypothesis.
+
+#F-test
+var.test(diabetes$Glucose[diabetes$Outcome == "1"], diabetes$Glucose[diabetes$Outcome == "0"])
+
+#Brief Interpretation
+#F-Test result shows that F statistics of 1.4928 with p-value of 0.0001392 are significant result.
+#This infers that the variances of Glucose for two groups that are being compared are likely to be statistically different.
+
+#Levene Test
+leveneTest(Pregnancies ~ Outcome, data = diabetes)
+leveneTest(Glucose ~ Outcome, data = diabetes)
+leveneTest(BloodPressure ~ Outcome, data = diabetes)
+leveneTest(SkinThickness ~ Outcome, data = diabetes)
+leveneTest(Insulin ~ Outcome, data = diabetes)
+leveneTest(BMI ~ Outcome, data = diabetes)
+leveneTest(DiabetesPedigreeFunction ~ Outcome, data = diabetes)
+leveneTest(Age ~ Outcome, data = diabetes)
+
+#Brief Interpretation for BMI
+#Our Null hypothesis is: The variances of the "BMI" variable are equal across the different levels of the "Outcome" variable.
+#Our Alternative hypothesis is: The variances of the "BMI" variable are not equal across the different levels of the "Outcome" variable.
+#We got p-value to be 0.1059 which is greater than 0.05, therefore we accept Null hypothesis.
+#We conclude that there is no significant difference in the variances of the "BMI" variable across the different levels of the "Outcome" variable.
+
+#ANOVA
+summary(aov(Pregnancies ~ Outcome, data = diabetes))
+summary(aov(Glucose ~ Outcome, data = diabetes))
+summary(aov(BloodPressure ~ Outcome, data = diabetes))
+summary(aov(SkinThickness ~ Outcome, data = diabetes))
+summary(aov(Insulin ~ Outcome, data = diabetes))
+summary(aov(BMI ~ Outcome, data = diabetes))
+summary(aov(DiabetesPedigreeFunction ~ Outcome, data = diabetes))
+summary(aov(Age ~ Outcome, data = diabetes))
+
+#Brief Interpretation
+#Null Hypothesis: There is no significant difference in the mean values across the different levels of the "Outcome" variable.
+#Alternative Hypothesis: There is a significant difference in the mean values across the different levels of the "Outcome" variable.
+#We reject Null hypothesis for the variables (Pregnancies, Glucose, Insulin, BMI, DiabetesPedigreeFunction, and Age) which has p-value less than 0.05.
+#These suggest that there is significant difference in the mean values of those variables across different levels of the "Outcome" variable.\
+
+#Principle Component Analysis (PCA)
+diabetes_pca <- prcomp(diabetes[-9], scale=TRUE)
+diabetes_pca
+
+#Brief Interpretation
+#We got an 8x8 rotation matrix.
+#These PCs are ordered in the order of importance, with PC1 being most important and so on.
+#The numbers represented as a list shows the loadings/weights of each original variable.
+#The larger the value of the loading, the more important the variable is in determining the value of that principal component.
+#For example, for PC2, the variables with the higher loading are Pregnancies (0.5937) and Age (0.6205).
+#It indicates that these variables are have large contribution to PC2.
+#Note: Negative sign indicates the inverse relationship or correlation of that variable to the corresponding principal component.
+
+summary(diabetes_pca)
+
+#Brief Interpretation
+#Standard Deviation indicates the amount of variability or information PC captures from the original variable.
+#Proportion of Variance explains the variance explained by each PC.
+#Cumulative Proportion is just the combination of the current PC and the PCs before it.
+
+#Here we are just creating the previous output using the MATHS
+#We are creating 8x8 Rotation Matrix, Eigen Values, Proportion of Variance, and Cumulative Variance.
+eigen_diabetes <- diabetes_pca$sdev^2
+eigen_diabetes
+
+names(eigen_diabetes) <- paste("PC",1:8,sep="")
+eigen_diabetes
+
+sumlambdas <- sum(eigen_diabetes)
+sumlambdas
+
+propvar <- eigen_diabetes/sumlambdas
+propvar
+
+cumvar_diabetes <- cumsum(propvar)
+cumvar_diabetes
+
+matlambdas <- rbind(eigen_diabetes,propvar,cumvar_diabetes)
+rownames(matlambdas) <- c("Eigenvalues","Prop. variance","Cum. prop. variance")
+round(matlambdas,4)
+summary(diabetes_pca)
+diabetes_pca$rotation
+print(diabetes_pca)
+
+#Identifying the scores by Outcome
+diabetes_pca$x
+diabtyp_pca <- cbind(data.frame(diabetes$Outcome),diabetes_pca$x)
+diabtyp_pca
+
+#The output shows the score of all Principal Component based on the Outcome column. 
+
+#Means of Scores for all PC's by Outcome
+tabmeansPC <- aggregate(diabtyp_pca[,2:9],by=list(Outcome=diabetes$Outcome),mean)
+tabmeansPC
+
+#Brief Interpretation
+#This just shows the mean of each PCs grouped by the Outcome, that is 0 or 1.
+
+#Reversing the order
+tabmeansPC <- tabmeansPC[rev(order(tabmeansPC$Outcome)),]
+tabmeansPC
+
+#Switching columns to rows and vice-versa
+tabfmeans <- t(tabmeansPC[,-1])
+tabfmeans
+
+#Specifying the actual column name as "0" and "1"
+colnames(tabfmeans) <- t(as.vector(tabmeansPC[1]$Outcome))
+tabfmeans
+
+#Standard Deviation of Scores for all PC's by Outcome
+tabsdsPC <- aggregate(diabtyp_pca[,2:9],by=list(Outcome=diabetes$Outcome),sd)
+tabfsds <- t(tabsdsPC[,-1])
+colnames(tabfsds) <- t(as.vector(tabsdsPC[1]$Outcome))
+tabfsds
+
+#Brief Interpretation
+#The numbers in the output represent the standard deviation (SD) of scores for each principal component (PC) separated by the outcomes 0 and 1 in a diabetes dataset.
+#For PC1: PC1: The standard deviation of scores for PC1 is 1.2949356 when the outcome is 0, and 1.4172980 when the outcome is 1.
+#Similarly, for PC2: The standard deviation of scores for PC2 is 1.2634782 when the outcome is 0, and 1.3374167 when the outcome is 1.
+#And so on, for PC3 to PC8.
+
+#T-Test with Principle Component
+t.test(PC1~diabetes$Outcome,data=diabtyp_pca)
+t.test(PC2~diabetes$Outcome,data=diabtyp_pca)
+t.test(PC3~diabetes$Outcome,data=diabtyp_pca)
+t.test(PC4~diabetes$Outcome,data=diabtyp_pca)
+t.test(PC5~diabetes$Outcome,data=diabtyp_pca)
+t.test(PC6~diabetes$Outcome,data=diabtyp_pca)
+t.test(PC7~diabetes$Outcome,data=diabtyp_pca)
+t.test(PC8~diabetes$Outcome,data=diabtyp_pca)
+
+#Brief Interpretation
+#Null Hypothesis: The true difference in means between group 0 and group 1 is equal to 0.
+#Alternative Hypothesis: The true difference in means between group 0 and group 1 is not equal to 0.
+#For PC4 and PC7, we can say that by looking at the p-value that, there is true difference between group 0 and group 1 is equal to 0 for variable PC7.
+#And for PC1, PC2, PC3, PC5, PC6, and PC8, we accept the alternative hypothesis becauase the p-value is less than 0.05 for each of them.
+
+#F-Test with Principle Component
+var.test(PC1~diabetes$Outcome,data=diabtyp_pca)
+var.test(PC2~diabetes$Outcome,data=diabtyp_pca)
+var.test(PC3~diabetes$Outcome,data=diabtyp_pca)
+var.test(PC4~diabetes$Outcome,data=diabtyp_pca)
+var.test(PC5~diabetes$Outcome,data=diabtyp_pca)
+var.test(PC6~diabetes$Outcome,data=diabtyp_pca)
+var.test(PC7~diabetes$Outcome,data=diabtyp_pca)
+var.test(PC8~diabetes$Outcome,data=diabtyp_pca)
+
+#Brief Interpretation
+#Null Hypothesis:There is no significant difference in variances between the two groups.
+#Alternative Hypothesis:There is a significant difference in variances between the two groups.
+#For PC1, PC2, and PC3, the p-value is greater than 0.05, and therefore, we can conclude that there is no significant difference in variances between the two groups.
+#But PC4,PC5, PC6, PC7, and PC8, the p-value is smaller than 0.05, and therefore, we can conclude that there is significant difference in variances between the two groups.
+
+#Plotting the scores of PC1 and PC2
+plot(diabtyp_pca$PC1, diabtyp_pca$PC2, pch=ifelse(diabtyp_pca$Outcome == "S",1,16),xlab="PC1", ylab="PC2", main="768 patient against values for PC1 & PC2")
+abline(h=0, col = "blue")
+abline(v=0, col = "blue")
+legend("topright",cex = 0.5, legend=c("Diabetic","Non-diabetic"), pch=c(1,16))
+plot(eigen_diabetes, xlab = "Component number", ylab = "Component variance", type = "l", main = "Scree diagram")
+plot(log(eigen_diabetes), xlab = "Component number",ylab = "log(Component variance)", type="l",main = "Log(eigenvalue) diagram")
+print(summary(diabetes_pca))
+diag(cov(diabetes_pca$x))
+xlim <- range(diabetes_pca$x[,1])
+diabetes_pca$x[,1]
+diabetes_pca$x
+plot(diabetes_pca$x,xlim=xlim,ylim=xlim)
+diabetes_pca$rotation[,1]
+diabetes_pca$rotation
+plot(diabetes[,1:8])
+diabetes_pca$x
+plot(diabetes_pca)
+
+#Brief Interpretation
+#From the Scree Diagram, we can see that the elbow is formed at the component number 3.
+#We can stick to it and confirm with the summary(diabetes_pca), that how much variance is explained by those 3 components.
+#From the summary, we can figure out that almost 60% of the variance is being explained first 3 PCs.
+
+#Plotting correlation
+pairs.panels(diabetes[,1:8],
+             gap = 0,
+             bg = c("orange", "blue")[diabetes$Outcome],
+             pch=21)
+
+pairs.panels(diabetes_pca$x,
+             gap=0,
+             bg = c("orange", "blue")[diabetes$Outcome],
+             pch=21)
+
+fviz_eig(diabetes_pca, addlabels = TRUE)
+
+#Brief Interpretation
+#PC1 explains around 26.2% of variance.
+#PC2 explains around 21.6% of variance.
+#PC3 explains around 12.9% of variance.
+#PC4 explains around 10.9% of variance.
+#PC5 explains around 9.5% of variance.
+#PC6 explains around 8.5% of variance.
+#PC7 explains around 5.2% of variance.
+#PC8 explains around 5.1% of variance.
+
+fviz_pca_var(diabetes_pca,col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+
+#Brief Interpretation
+#We can see that Age and Pregnancies are close to each other, and can infer that both have similar patterns and are to be correlated as well.
+#Similarly, Blood Pressure and Glucose follows the same trend.
+#Also, we can see that Age and Skin Thickness are the variables that are closer to circumference of the circle compared to other variables, which indicates that those variables have higher contributions to the explained variation in the data.
+#Similarly, the variables that are closer to circumference like Blood Pressure or BMI are the one that have lower contributions to the explained variance.
+
+#Bi-Plot 
+biplot(diabetes_pca)
+
+#AutoPlot of PC1 VS PC2
+autoplot(diabetes_pca, data = diabetes[,1:8], loadings = TRUE, labels = diabetes$Outcome)
+
+#Trying different PCA Methods
+res.pca <- PCA(diabetes[,1:8], graph = FALSE)
+print(res.pca)
+
+#Visualizing and interpreting PCA
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+
+#Brief Interpretation
+#It shows the Eigen Values, explained variance in terms of percentage and cumulative variance in terms of percentage for each PCs.
+
+#Scree Plot
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+
+#Principal Component Analysis Results for Variables
+var <- get_pca_var(res.pca)
+var
+
+#Coordinates
+head(var$coord)
+#It shows how each variable contributes to Principal Components and how they are positioned relative to each other in multi-dimensional space.
+
+#Cos2
+head(var$cos2)
+#It also shows similar things, that how each variable contributes to Principal Components.
+#Squared cosine close to 1 indicates that the variable is well-represented by the corresponding principal component
+#While a squared cosine close to 0 indicates that the variable has little contribution to the respective principal component. 
+
+#Contributions to Principle Component
+head(var$contrib)
+
+#Correlation Circle
+fviz_pca_var(res.pca, col.var = "red")
+
+#Quality of Representation
+corrplot(var$cos2, is.corr=FALSE)
+
+#Brief Interpretation
+#We can see that Skin Thickness, BMI, and Insulin have much correlation with Dim. 1 (PC 1).
+#Similarly, Pregnancies, and Age are more correlated with Dim. 2 (PC 2).
+
+#Quality of Representation of COS2
+fviz_cos2(res.pca, choice = "var", axes = 1:2)
+
+#Variable Plot based on cos2 values
+fviz_pca_var(res.pca, col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE)
+
+#Change the transparency by cos2 values
+fviz_pca_var(res.pca, alpha.var = "cos2")
+corrplot(var$contrib, is.corr=FALSE)
+
+#Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+
+#Brief Interpretation
+#We can see that BMI, Skin Thickness, Insulin, Glucose, and Blood Pressure are the variables that contributes to Dim. 1 based on this plot.
+
+#Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+
+#Brief Interpretation
+#We can see that Age and Pregnancies are the variables that contributes to Dim. 2 based on this plot.
+
+#Variable Plot based on contribution values
+fviz_pca_var(res.pca, col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+
+#Change the transparency by contribution values
+fviz_pca_var(res.pca, alpha.var = "contrib")
+
+#Scatter Plot with ellipses around each group based on "Outcome" variable.
+fviz_pca_ind(res.pca,
+             geom.ind = "point", # show points only (nbut not "text")
+             col.ind = diabetes$Outcome, # color by groups
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, # Concentration ellipses
+             legend.title = "Groups")
+
+#Bi-Plot of individuals and variables in PCs with ellipse around each group based on "Outcome" variable and adding variable plot based on contibution values.
+fviz_pca_biplot(res.pca, 
+                # Individuals
+                geom.ind = "point",
+                fill.ind = diabetes$Outcome, col.ind = "black",
+                pointshape = 21, pointsize = 2,
+                palette = "jco",
+                addEllipses = TRUE,
+                # Variables
+                alpha.var ="contrib", col.var = "contrib",
+                gradient.cols = "RdYlBu", 
+                legend.title = list(fill = "Outcome", color = "Contrib",
+                                    alpha = "Contrib")
+)
