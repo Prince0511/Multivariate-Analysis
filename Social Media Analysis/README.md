@@ -28,6 +28,7 @@ Total Social Media Screen Time (hrs) -> The total number of hours spent on all s
 Number of times opened (hourly intervals) -> The number of times the social media apps were opened in hourly intervals during the specified week. -> Integer (count) 
 Social Media Addiction -> A binary indicator indicating whether the individual is addicted or not addicted to social media, based on a predefined threshold of app openings (e.g., 105 times per week). -> Binary
 
+
 Questions that I tried to answer (Hypothesis):
 
 How time spent on social media reveals underlying pattern on addiction?
