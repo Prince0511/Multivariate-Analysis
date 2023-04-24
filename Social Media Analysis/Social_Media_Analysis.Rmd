@@ -1,0 +1,875 @@
+---
+title: "Social Media Analysis"
+author: "Prince Kheni"
+date: "2023-04-22"
+output: html_document
+---
+```{r}
+#Hypothesis
+#1. How time spent on social media reveals underlying pattern on addiction?
+#2. Are we able to distinguish between different peoples choice based on the time spend on app?
+#3. Does time spent on each app really counts towards person's being addicted? 
+
+#Libraries
+library(readxl)
+library(readr)
+library(GGally)
+library(Hotelling)
+library(car)
+library(factoextra)
+library(FactoMineR)
+library(ggfortify)
+library(psych)
+library(corrplot)
+library(devtools)
+library(cluster)
+library(factoextra)
+library(magrittr)
+library(NbClust)
+library(GPArotation)
+library(GGally)
+library(MASS)
+library(gvlma)
+library(leaps)
+library(relaimpo)
+library(ggplot2)
+library(cowplot)
+#library(regclass)
+library(caret)
+library(e1071)
+library(pROC)
+
+#Loading the dataset
+Social_Media <- read_excel("D:/MITA/SPRING/Multivariate_Analysis/Homework/Social Media Analysis/Social_Media.xlsx")
+social <- Social_Media[c(-1,-2,-15)]
+View(social)
+summary(social)
+social <- replace(social, is.na(social), 0)
+str(social)
+
+
+#######                 PRINCIPAL COMPONENT ANALYSIS            #######
+
+
+#Calculating the mean of each variables
+colMeans(social[c(-13)])
+#It shows mean of each variable.
+
+#Covariance Matrix
+cov(social[c(-13)])
+#It shows co-variance of each variable against each.
+
+#Correlation Matrix
+cor(social[c(-13)])
+#It shows correlation of each variable against each.
+
+#Boxplot
+boxplot(social[c(-13)])
+#It shows the boxplot of each variable.
+#Black line in the middle indicate the median, and any data that are outside of whisker are considered as potential outliers.
+#There are few apps which are only used by few of the people, and due to which box plot is considering those values as outliers in compared to those who don't use the apps at all.
+
+#Plots
+plot(social$`Whatsapp (hrs)`, social$`Total Social Media Screen Time (hrs)`, xlab="Whatsapp", ylab="Total Social Media Time",pch=c(16,1))
+
+#Brief Interpretation
+#We can see that most of the data is cluttered at one place.
+#For the above plot, we can say that most of the people lie around the center, that is their Whatsapp usage constitutes more in total social media time.
+
+#Correlations Plot among each variable
+pairs(social[c(-13)])
+
+#Brief Interpretation
+#Whatsapp and Total Social Media Screen Time is positively correlated.
+#Instagram and Total Social Media Screen Time is positively correlated.
+#Snapchat and Total Social Media Screen Time is positively correlated, but not as Whatsapp and Instagram.
+#Even, LinkedIn is quiet correlated positively with Total Social Media Screen Time.
+
+plot(social$`TikTok (hrs)`, social$`WeChat (hrs)`, xlab="TikTok", ylab="WeChat",pch=c(16,1))
+#TikTok and WeChat is also looking to positively correlated but due to lack of data, we can't guarantee.
+
+#Factoring our Outcome column 
+social$`Social Media Addiction` <- as.factor(social$`Social Media Addiction`)
+str(social)
+View(social)
+options(scipen = 999)
+
+#Plots using ggplot library
+ggplot(social, aes(x=social$`TikTok (hrs)`, y=social$`WeChat (hrs)`)) + facet_wrap("`Social Media Addiction`") + geom_point()
+
+#T-tests for Addicted and Not addicted person
+with(data = social, t.test(social$`Whatsapp (hrs)`[social$`Social Media Addiction`=="Addicted"], social$`Whatsapp (hrs)`[social$`Social Media Addiction`=="Not Addicted"],var.equal = TRUE))
+with(data = social, t.test(social$`Instagram (hrs)`[social$`Social Media Addiction`=="Addicted"], social$`Instagram (hrs)`[social$`Social Media Addiction`=="Not Addicted"],var.equal = TRUE))
+with(data = social, t.test(social$`Linkedin (hrs)`[social$`Social Media Addiction`=="Addicted"], social$`Linkedin (hrs)`[social$`Social Media Addiction`=="Not Addicted"],var.equal = TRUE))
+
+#Brief Interpretation
+#The t-test shows the p-value < 0.05, which indicates that the observed difference in means is statistically significant.
+#Sample estimate provides the mean of the group corresponding to "Social Media Addiction" level "1", and the mean of the group corresponding to "Social Media Addiction" level "0".
+
+#Principle Component Analysis (PCA)
+social_pca <- prcomp(social[c(-12,-13)], scale=TRUE)
+social_pca
+
+#Brief Interpretation
+#We got an 11x11 rotation matrix.
+#These PCs are ordered in the order of importance, with PC1 being most important and so on.
+#The numbers represented as a list shows the loadings/weights of each original variable.
+#The larger the value of the loading, the more important the variable is in determining the value of that principal component.
+#For example, for PC1, the variables with the higher loading are TikTok (0.5452) and WeChat (0.5599).
+#It indicates that these variables are have large contribution to PC1.
+#Note: Negative sign indicates the inverse relationship or correlation of that variable to the corresponding principal component.
+
+summary(social_pca)
+
+#Brief Interpretation
+#Standard Deviation indicates the amount of variability or information PC captures from the original variable.
+#Proportion of Variance explains the variance explained by each PC.
+#Cumulative Proportion is just the combination of the current PC and the PCs before it.
+
+
+#Here we are just creating the previous output using the MATHS
+#We are creating 8x8 Rotation Matrix, Eigen Values, Proportion of Variance, and Cumulative Variance.
+eigen_social <- social_pca$sdev^2
+eigen_social
+
+names(eigen_social) <- paste("PC",1:11,sep="")
+eigen_social
+
+sumlambdas <- sum(eigen_social)
+sumlambdas
+
+propvar <- eigen_social/sumlambdas
+propvar
+
+cumvar_social <- cumsum(propvar)
+cumvar_social
+
+matlambdas <- rbind(eigen_social,propvar,cumvar_social)
+rownames(matlambdas) <- c("Eigenvalues","Prop. variance","Cum. prop. variance")
+round(matlambdas,4)
+summary(social_pca)
+social_pca$rotation
+print(social_pca)
+
+#Identifying the scores by Social Media Addiction
+social_pca$x
+socialtyp_pca <- cbind(data.frame(social$`Social Media Addiction`),social_pca$x)
+socialtyp_pca
+
+#The output shows the score of all Principal Component based on the Social Media Addiction column. 
+
+#Means of Scores for all PC's by Outcome
+tabmeansPC <- aggregate(socialtyp_pca[,2:12],by=list(Outcome=social$`Social Media Addiction`),mean)
+tabmeansPC
+
+#Brief Interpretation
+#This just shows the mean of each PCs grouped by the Addiction, that is 0 or 1.
+
+#Reversing the order
+tabmeansPC <- tabmeansPC[rev(order(tabmeansPC$Outcome)),]
+tabmeansPC
+
+#Switching columns to rows and vice-versa
+tabfmeans <- t(tabmeansPC[,-1])
+tabfmeans
+
+#Specifying the actual column name as "0" and "1"
+colnames(tabfmeans) <- t(as.vector(tabmeansPC[1]$Outcome))
+tabfmeans
+
+#Standard Deviation of Scores for all PC's by Outcome
+tabsdsPC <- aggregate(socialtyp_pca[,2:12],by=list(Outcome=social$`Social Media Addiction`),sd)
+tabfsds <- t(tabsdsPC[,-1])
+colnames(tabfsds) <- t(as.vector(tabsdsPC[1]$Outcome))
+tabfsds
+
+#Brief Interpretation
+#The numbers in the output represent the standard deviation (SD) of scores for each principal component (PC) separated by the outcomes 'addicted' and 'not-addicted' in our dataset.
+#For PC1: PC1: The standard deviation of scores for PC1 is 1.0837 when the outcome is Addicted, and 1.8537 when the outcome is Not Addicted.
+#Similarly, for PC2: The standard deviation of scores for PC2 is 1.154 when the outcome is Addicted, and 1.553 when the outcome is Not Addicted.
+#And so on, for PC3 to PC8.
+
+#T-Test with Principle Component
+t.test(PC1~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC2~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC3~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC4~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC5~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC6~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC7~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC8~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC9~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC10~social$`Social Media Addiction`,data=socialtyp_pca)
+t.test(PC11~social$`Social Media Addiction`,data=socialtyp_pca)
+
+#Brief Interpretation
+#Null Hypothesis: The true difference in means between group 0 and group 1 is equal to 0.
+#Alternative Hypothesis: The true difference in means between group 0 and group 1 is not equal to 0.
+
+#Plotting the scores of PC1 and PC2
+plot(socialtyp_pca$PC1, socialtyp_pca$PC2, pch=ifelse(socialtyp_pca$social..Social.Media.Addiction. == "S",1,16),xlab="PC1", ylab="PC2", main="PC1 against PC2")
+abline(h=0, col = "blue")
+abline(v=0, col = "blue")
+legend("topright",cex = 0.5, legend=c("Addictive","Not Addictive"), pch=c(1,16))
+plot(eigen_social, xlab = "Component number", ylab = "Component variance", type = "l", main = "Scree diagram")
+plot(log(eigen_social), xlab = "Component number",ylab = "log(Component variance)", type="l",main = "Log(eigenvalue) diagram")
+print(summary(social_pca))
+diag(cov(social_pca$x))
+xlim <- range(social_pca$x[,1])
+social_pca$x[,1]
+social_pca$x
+plot(social_pca$x,xlim=xlim,ylim=xlim)
+social_pca$rotation[,1]
+social_pca$rotation
+plot(social[,1:11])
+social_pca$x
+plot(social_pca)
+
+#Brief Interpretation
+#From the Scree Diagram, we can't say where the elbow is formed.
+#It is difficult to observe it from the scree diagram.
+#Even, looking at the log(eigenvalue) diagram, we can't see that the elbow is formed.
+#Even the total variance explained by the first 2 components is not greater than 70%.
+#So, we can say that PCA is not helpful for this data set.
+
+#Plotting correlation
+pairs.panels(social[,1:11],
+             gap = 0,
+             bg = c("orange", "blue")[social$`Social Media Addiction`],
+             pch=21)
+
+pairs.panels(social_pca$x,
+             gap=0,
+             bg = c("orange", "blue")[social$`Social Media Addiction`],
+             pch=21)
+
+fviz_eig(social_pca, addlabels = TRUE)
+
+#Brief Interpretation
+#PC1 explains around 20.9% of variance.
+#PC2 explains around 16.2% of variance.
+#PC3 explains around 13.8% of variance.
+#PC4 explains around 11.1% of variance.
+#PC5 explains around 9% of variance.
+#PC6 explains around 8.3% of variance.
+#PC7 explains around 7.1% of variance.
+#PC8 explains around 6.3% of variance.
+#PC9 explains around 3.9% of variance.
+#PC10 explains around 2.4% of variance.
+
+fviz_pca_var(social_pca,col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE)
+
+#Brief Interpretation
+#We can see that TikTok and WeChat are close to each other, and can infer that both have similar patterns and are to be correlated as well.
+#Similarly, Linkedin and SnapChat follows the same trend.
+
+#Bi-Plot 
+biplot(social_pca)
+
+#AutoPlot of PC1 VS PC2
+autoplot(social_pca, data = social[,1:11], loadings = TRUE, labels = social$`Social Media Addiction`)
+
+#Trying different PCA Methods
+res.pca <- PCA(social[c(-12,-13)], graph = FALSE)
+print(res.pca)
+
+#Visualizing and interpreting PCA
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+
+#Brief Interpretation
+#It shows the Eigen Values, explained variance in terms of percentage and cumulative variance in terms of percentage for each PCs.
+
+#Scree Plot
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+
+#Principal Component Analysis Results for Variables
+var <- get_pca_var(res.pca)
+var
+
+#Coordinates
+head(var$coord)
+#It shows how each variable contributes to Principal Components and how they are positioned relative to each other in multi-dimensional space.
+
+#Cos2
+head(var$cos2)
+
+#Contributions to Principle Component
+head(var$contrib)
+
+#Correlation Circle
+fviz_pca_var(res.pca, col.var = "blue")
+
+#Quality of Representation based on cos2
+corrplot(var$cos2, is.corr=FALSE)
+
+#Quality of Representation of COS2
+fviz_cos2(res.pca, choice = "var", axes = 1:2)
+
+#Brief Interpretation
+#We can see that TikTok, and WeChat have much correlation with Dim. 1 (PC 1).
+#Similarly, SnapChat, Facebook/Messenger, and Linkedin are more correlated with Dim. 2 (PC 2).
+
+#Variable Plot based on cos2 values
+fviz_pca_var(res.pca, col.var = "cos2", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), repel = TRUE)
+
+#Change the transparency by cos2 values
+fviz_pca_var(res.pca, alpha.var = "cos2")
+
+#Quality of Representation based on contrib
+corrplot(var$contrib, is.corr=FALSE)
+
+#Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+
+#Brief Interpretation
+#We can see that WeChat, TikTok, and Whatsapp are the variables that contributes to Dim. 1 based on this plot.
+
+#Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+
+#Brief Interpretation
+#We can see that SnapChat, Linkedin, and Facebook/Messenger are the variables that contributes to Dim. 2 based on this plot.
+
+#Variable Plot based on contribution values
+fviz_pca_var(res.pca, col.var = "contrib", gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+
+#Change the transparency by contribution values
+fviz_pca_var(res.pca, alpha.var = "contrib")
+
+#Scatter Plot with ellipses around each group based on "Outcome" variable.
+fviz_pca_ind(res.pca,
+             geom.ind = "point", # show points only (nbut not "text")
+             col.ind = social$`Social Media Addiction`, # color by groups
+             palette = c("#00AFBB", "#E7B800"),
+             addEllipses = TRUE, # Concentration ellipses
+             legend.title = "Groups")
+
+#Bi-Plot of individuals and variables in PCs with ellipse around each group based on "Outcome" variable and adding variable plot based on contribution values.
+fviz_pca_biplot(res.pca, 
+                # Individuals
+                geom.ind = "point",
+                fill.ind = social$`Social Media Addiction`, col.ind = "black",
+                pointshape = 21, pointsize = 2,
+                palette = "jco",
+                addEllipses = TRUE,
+                # Variables
+                alpha.var ="contrib", col.var = "contrib",
+                gradient.cols = "RdYlBu", 
+                legend.title = list(fill = "Outcome", color = "Contrib",
+                                    alpha = "Contrib"))
+
+
+
+########              Exploratory Factor Analysis              #######
+
+#Rotate using Varimax Method
+method_1 <- principal(social[c(-12,-13)], nfactors=5, rotate="varimax")
+method_1
+
+#Brief Interpretation
+#We passed nfactors = 5 which refers to the number of factors or PCs.
+#RC1, RC2, RC3, RC4, and RC5 have some values which represents the loadings of each variables.
+#Positive loading indicates that there is a positive correlation between the original variable and extracted Principal Components.
+#While, negative loading indicates a negative relationship.
+#h2 shows the proportion of variance in each variable explained by the principal components.
+#u2 shows the proportion of variance in each variable unexplained by the principal components.
+#com shows the complexity to explain the variance.
+#SS Loadings shows the squared loading of each principal components.
+#Proportion Variance shows the proportion of total variance explained by each principal component.
+#Cumulative Variance shows the cumulative proportion of total variance explained by each principal component
+#Proportion Explained shows the proportion of total variance explained by each principal component, expressed as a percentage.
+#Cumulative Proportion shows the cumulative proportion of total variance explained by each principal component, expressed as a percentage.
+
+#Rounding method_1$values (Eigen Values) to 3 decimal places.
+round(method_1$values, 3)
+
+#Rounding method_1$values (Eigen Values).
+round(method_1$values)
+
+#Combining columns based on loadings
+method_1$loadings
+
+#Brief Interpretation
+#From the result we can make following conclusions:
+# RC1 shows the relation with WeChat, and TikTok.
+# RC2 shows the relation with Snapchat, LinkedIn, Instagram, and Telegram.
+# RC3 shows the relation with Twitter, and Facebook/Messenger.
+# RC4 shows the relation with BeReal, and Whatsapp.
+# RC5 shows the relation with only Messages. Therefore, we can just take Messages as a features and exclude RC5 since it only has one variable in it that is contribution or showing relationship.
+
+#Loadings with more digits
+for (i in c(1,3,2,4)) { print(method_1$loadings[[1,i]])}
+
+#Communalities
+method_1$communality
+
+#Brief Interpretation
+#Whatsapp has a communality estimate of 0.6082, meaning that approximately 60% of the variance in Pregnancies is explained by the extracted factors.
+#Similarly, Instagram has a communality estimate of 0.5958, indicating that approximately 59% of the variance in Instagram is explained by the extracted factors.
+
+#Rotated factor scores
+method_1$scores
+
+#Factor Recommendation
+fa.parallel(social[c(-12,-13)])
+
+#Brief Interpretation
+#Parallel analysis suggests that the number of factors =  4  and the number of components =  4.
+
+#Correlations within Factors
+fa.plot(method_1)
+
+#Visualizaing the relationship
+fa.diagram(method_1)
+
+#Brief Interpretation
+#We can say that we reduced the factors from 8 to 4.
+#It can be seen from the Components Analysis Plot.
+
+#Factor Recommendation for a simple structure
+vss(social[c(-12,-13)])
+
+#Brief Interpretation
+#We can also see from Very Simple Structure that after factor number 4, we can't see any increase in the explained variance.
+#Therefore, we can conclude that number of factors = 4 is a good fit.
+
+##############            CLUSTERING ANALYSIS           ##################
+
+#Z-Score of my social media usage for different apps.
+#           Whatsapp        Instagram     Snapchat       Telegram 
+#[85,]     0.68418107     -1.13049722  -0.517680861    -0.19333825
+#[86,]     0.10546684     -1.02241748  -0.513084273     0.07869547
+#[87,]     0.05402558     -1.14425282  -0.540663800    -0.09132561
+#[88,]     0.12261393     -1.01259205  -0.572839916     3.34310015
+#[89,]     0.35195624     -1.12263687  -0.540663800    -0.02331718
+#[90,]    -0.34678761     -1.00473170  -0.609612619     0.31672498
+#[91,]    -0.15173948     -0.36214853  -0.605016031     0.41873762
+
+# Facebook/Messenger   BeReal       TikTok      WeChat       Twitter 
+#[85,] 0.54127388  -0.15086735   -0.1887538  -0.21483824   -0.24600661
+#[86,] 2.32490923  -0.15086735   -0.1887538  -0.21483824   -0.24600661
+#[87,] 1.01690997  -0.15086735   -0.1887538  -0.21483824   -0.24600661
+#[88,] 5.20250761  -0.15086735   -0.1887538  -0.21483824   -0.24600661
+#[89,] 2.18221840  -0.15086735   -0.1887538  -0.21483824   -0.24600661
+#[90,] 0.30345583  -0.15086735   -0.1887538  -0.21483824   -0.24600661
+#[91,] 0.16076500  -0.15086735   -0.1887538  -0.21483824   -0.24600661
+
+
+#       Linkedin (hrs) Messages (hrs)
+#[85,]   -0.356573940  -0.1032774633
+#[86,]   -0.567774783  -0.2724206734
+#[87,]   -0.456946618  -0.1455632658
+#[88,]   -0.594959050  -0.1032774633
+#[89,]   -0.557319296   0.2772947594
+#[90,]   -0.467402105  -0.2120123841
+#[91,]   -0.611687830   0.5249687456
+
+#Brief Interpretation
+#The above result shows the z-score of my social media usage.
+#We can notice that for most of the apps, the value is negative and near to zero.
+#It means that, the usage is nearer to mean of the class.
+#And the negative value shows that my usage is average is below zero.
+
+
+#Created a dataframe of Factors from Factor Analysis to pass it onto Cluster Analysis .
+data_efa <- as.data.frame(method_1$scores[,-5]) 
+data_efa$col_5 <- Social_Media$`Messages (hrs)`
+head(data_efa)
+
+#Since, clustering was not useful for our original dataset and therefore, we are using the Factors we got from our factor analysis.
+
+#Scaling the data for Standardization
+options(max.print=10000)
+social_scale <- scale(data_efa)
+social_scale
+
+#Calculating distance of the scaled data
+dist_social <- dist(social_scale, method = "euclidian")
+dist_social
+
+#Cluster analysis by Single Linkage Method
+clust_social <- hclust(dist_social, method = "single") 
+
+#Plotting vertical dendrogram
+plot(as.dendrogram(clust_social),ylab="Distance between Students",ylim=c(0,4.5),main="Dendrogram of Social Media Usage")
+
+#Computing percentage of variation for two clusters
+(kmeans2.social <- kmeans(social_scale, 2, nstart = 10))
+perc.var.2 <- round(100*(1 - kmeans2.social$betweenss/kmeans2.social$totss),1)
+names(perc.var.2) <- "Perc. 2 clus"
+perc.var.2
+#We get the variance as 82% by forming two clusters.
+
+#Computing percentage of variation for three clusters
+(kmeans3.social <- kmeans(social_scale, 3, nstart = 10))
+perc.var.3 <- round(100*(1 - kmeans3.social$betweenss/kmeans3.social$totss),1)
+names(perc.var.3) <- "Perc. 3 clus"
+perc.var.3
+#We get the variance as 69.3% by forming three clusters.
+
+#Computing percentage of variation for four clusters
+(kmeans4.social <- kmeans(social_scale, 4, nstart = 10))
+perc.var.4 <- round(100*(1 - kmeans4.social$betweenss/kmeans4.social$totss),1)
+names(perc.var.4) <- "Perc. 4 clus"
+perc.var.4
+#We get the variance as 52.3% by forming four clusters.
+
+#Computing percentage of variation for five clusters
+(kmeans5.social <- kmeans(social_scale, 5, nstart = 10))
+perc.var.5 <- round(100*(1 - kmeans5.social$betweenss/kmeans5.social$totss),1)
+names(perc.var.5) <- "Perc. 5 clus"
+perc.var.5
+#We get the variance as 37.1% by forming five clusters.
+
+#Computing percentage of variation for six clusters
+(kmeans6.social <- kmeans(social_scale, 6, nstart = 10))
+perc.var.6 <- round(100*(1 - kmeans6.social$betweenss/kmeans6.social$totss),1)
+names(perc.var.6) <- "Perc. 6 clus"
+perc.var.6
+#We get the variance as 27.8% by forming six clusters.
+
+#Generating a Variance_List
+Variance_List <- c(perc.var.2,perc.var.3,perc.var.4,perc.var.5, perc.var.6)
+Variance_List
+
+#Visualizing the generated Variance_List
+plot(Variance_List)
+
+#GGplot Visualization
+res.dist <- get_dist(social_scale, stand = TRUE, method = "pearson")
+
+#Visualizing the distance between each other
+fviz_dist(res.dist, gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+#Brief Interpretation
+#We can see a dissimilarity matrix which is plotted using gradient color.
+#Here, low indicates lowest dissimilarity values.
+#mid indicates middle dissimilarity values.
+#high indicates highest dissimilarity values.
+
+#Finding Optimal Distance
+fviz_nbclust(social_scale, kmeans, method = "gap_stat")
+
+#Brief Interpretation
+#From the graph we can see that, if number of clusters is 1, it has the gap statistics greater than 0.6.
+#We basically prefer the number of clusters that has higher gap statistics because it indicates a better clustering structure.
+#Optimal Number of Clusters is 5 from the graph.
+
+#Plotting the Clusters, where cluster = 1
+set.seed(123)
+km.res <- kmeans(social_scale, 1, nstart = 25)
+fviz_cluster(km.res, data = social_scale,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+
+#Plotting the Clusters, where cluster = 2
+set.seed(123)
+km.res <- kmeans(social_scale, 2, nstart = 25)
+fviz_cluster(km.res, data = social_scale,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+
+#Plotting the Clusters, where cluster = 3
+set.seed(123)
+km.res <- kmeans(social_scale, 3, nstart = 25)
+fviz_cluster(km.res, data = social_scale,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+
+#Brief Interpretation
+#We can see that, clustering analysis produces 3 clear clusters.
+
+#Plotting the Clusters, where cluster = 4
+set.seed(123)
+km.res <- kmeans(social_scale, 4, nstart = 25)
+fviz_cluster(km.res, data = social_scale,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+
+#Plotting the Clusters, where cluster = 5
+set.seed(123)
+km.res <- kmeans(social_scale, 5, nstart = 25)
+fviz_cluster(km.res, data = social_scale,
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_minimal())
+
+#Not effective clustering, because we got some overlapping
+
+#Performing Hierarchical Clustering
+res.hc <- social_scale %>% scale() %>% dist(method = "euclidean") %>% hclust(method = "ward.D2")
+
+#Plotting Cluster dendrogram for k = 2
+fviz_dend(res.hc, k = 2,
+          cex = 0.5,
+          k_colors = c("#00AFBB", "#E7B800", "#FC4E07"),
+          color_labels_by_k = TRUE, 
+          rect = TRUE 
+)
+
+#Optimal Number of Clusters
+res.nbclust <- social_scale %>% scale() %>% NbClust(distance = "euclidean", min.nc = 2, max.nc = 10, method = "complete", index ="all") 
+
+#Brief Interpretation
+#We are using Hubert Index and D-Index method, which are graphical method to determine the number of clusters.
+#From the majority rule, we can say that, the best number of clusters is 2 for our dataset.
+
+#Visualization using Bar Chart
+fviz_nbclust <- function (x, FUNcluster = NULL, method = c("silhouette", "wss", 
+                                                           "gap_stat"), diss = NULL, k.max = 10, nboot = 100, verbose = interactive(), 
+                          barfill = "steelblue", barcolor = "steelblue", linecolor = "steelblue", 
+                          print.summary = TRUE, ...) 
+{
+  set.seed(123)
+  if (k.max < 2) 
+    stop("k.max must bet > = 2")
+  method = match.arg(method)
+  if (!inherits(x, c("data.frame", "matrix")) & !("Best.nc" %in% 
+                                                  names(x))) 
+    stop("x should be an object of class matrix/data.frame or ", 
+         "an object created by the function NbClust() [NbClust package].")
+  if (inherits(x, "list") & "Best.nc" %in% names(x)) {
+    best_nc <- x$Best.nc
+    if (any(class(best_nc) == "numeric") ) 
+      print(best_nc)
+    else if (any(class(best_nc) == "matrix") )
+      .viz_NbClust(x, print.summary, barfill, barcolor)
+  }
+  else if (is.null(FUNcluster)) 
+    stop("The argument FUNcluster is required. ", "Possible values are kmeans, pam, hcut, clara, ...")
+  else if (!is.function(FUNcluster)) {
+    stop("The argument FUNcluster should be a function. ", 
+         "Check if you're not overriding the specified function name somewhere.")
+  }
+  else if (method %in% c("silhouette", "wss")) {
+    if (is.data.frame(x)) 
+      x <- as.matrix(x)
+    if (is.null(diss)) 
+      diss <- stats::dist(x)
+    v <- rep(0, k.max)
+    if (method == "silhouette") {
+      for (i in 2:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_ave_sil_width(diss, clust$cluster)
+      }
+    }
+    else if (method == "wss") {
+      for (i in 1:k.max) {
+        clust <- FUNcluster(x, i, ...)
+        v[i] <- .get_withinSS(diss, clust$cluster)
+      }
+    }
+    df <- data.frame(clusters = as.factor(1:k.max), y = v, 
+                     stringsAsFactors = TRUE)
+    ylab <- "Total Within Sum of Square"
+    if (method == "silhouette") 
+      ylab <- "Average silhouette width"
+    p <- ggpubr::ggline(df, x = "clusters", y = "y", group = 1, 
+                        color = linecolor, ylab = ylab, xlab = "Number of clusters k", 
+                        main = "Optimal number of clusters")
+    if (method == "silhouette") 
+      p <- p + geom_vline(xintercept = which.max(v), linetype = 2, 
+                          color = linecolor)
+    return(p)
+  }
+  else if (method == "gap_stat") {
+    extra_args <- list(...)
+    gap_stat <- cluster::clusGap(x, FUNcluster, K.max = k.max, 
+                                 B = nboot, verbose = verbose, ...)
+    if (!is.null(extra_args$maxSE)) 
+      maxSE <- extra_args$maxSE
+    else maxSE <- list(method = "firstSEmax", SE.factor = 1)
+    p <- fviz_gap_stat(gap_stat, linecolor = linecolor, 
+                       maxSE = maxSE)
+    return(p)
+  }
+}
+
+.viz_NbClust <- function (x, print.summary = TRUE, barfill = "steelblue", 
+                          barcolor = "steelblue") 
+{
+  best_nc <- x$Best.nc
+  if (any(class(best_nc) == "numeric") )
+    print(best_nc)
+  else if (any(class(best_nc) == "matrix") ) {
+    best_nc <- as.data.frame(t(best_nc), stringsAsFactors = TRUE)
+    best_nc$Number_clusters <- as.factor(best_nc$Number_clusters)
+    if (print.summary) {
+      ss <- summary(best_nc$Number_clusters)
+      cat("Among all indices: \n===================\n")
+      for (i in 1:length(ss)) {
+        cat("*", ss[i], "proposed ", names(ss)[i], 
+            "as the best number of clusters\n")
+      }
+      cat("\nConclusion\n=========================\n")
+      cat("* According to the majority rule, the best number of clusters is ", 
+          names(which.max(ss)), ".\n\n")
+    }
+    df <- data.frame(Number_clusters = names(ss), freq = ss, 
+                     stringsAsFactors = TRUE)
+    p <- ggpubr::ggbarplot(df, x = "Number_clusters", 
+                           y = "freq", fill = barfill, color = barcolor) + 
+      labs(x = "Number of clusters k", y = "Frequency among all indices", 
+           title = paste0("Optimal number of clusters - k = ", 
+                          names(which.max(ss))))
+    return(p)
+  }
+}
+
+#Assign them to the factoextra namespace
+environment(fviz_nbclust) <- asNamespace("factoextra")
+assignInNamespace("fviz_nbclust",fviz_nbclust,"factoextra")
+environment(.viz_NbClust) <- asNamespace("factoextra")
+assignInNamespace(".viz_NbClust",.viz_NbClust,"factoextra")
+fviz_nbclust(res.nbclust, ggtheme = theme_minimal())
+
+#Brief Interpretation
+#We can see that, number of clusters = 2 has the highest frequency among all indices.
+#Therefore, we can say that 2 is the optimal number of clusters for our dataset.
+
+# Quality of Clustering
+set.seed(123)
+
+# Enhanced hierarchical clustering, cut in 2 groups
+res.hc <- social_scale %>% scale() %>% eclust("hclust", k = 2, graph = FALSE)
+
+# Visualize with factoextra
+fviz_dend(res.hc, palette = "jco",rect = TRUE, show_labels = FALSE)
+
+#Inspect the silhouette plot:
+fviz_silhouette(res.hc)
+
+#Brief Interpretation
+#We are using this method to measure the quality of clustering in dataset.
+#It's value ranges from -1 to 1, where higher value indicate better clustering.
+#From 175 values, 161 belongs to cluster 1 and 14 belongs to cluster 2.
+#But we also get few negative values, due to which we get negative silhouette plot.
+
+# Silhouette width of observations
+sil <- res.hc$silinfo$widths[, 1:3]
+sil
+
+#Final Interpretation:
+#We can say that, clustering can't be as much useful to classify between addicted and not addicted.
+#We can say this because, when we plotted our clusters, we got overlapped clusters.
+
+
+######                      LOGISTIC REGRESSION                 ######
+#Converting Outcome column into factor.
+social$`Social Media Addiction` <- as.factor(social$`Social Media Addiction`)
+str(social)
+social_1 <- as.data.frame(social)
+
+#Using janitor library to clean the column names.
+library(janitor)
+social_01 <- clean_names(social_1)
+str(social_01)
+
+#Logistic Regression with Whatsapp and Instagram variable (Dummy)
+logistic <- glm(social_media_addiction ~ whatsapp_hrs + instagram_hrs, data = social_01, family = "binomial")
+summary(logistic)
+
+#Logistic Regression with all variables
+logistic_simple <- glm(social_media_addiction ~ whatsapp_hrs + instagram_hrs + snapchat_hrs +  telegram_hrs + facebook_messenger_hrs + be_real_hrs + tik_tok_hrs + we_chat_hrs + twitter_hrs + linkedin_hrs + messages_hrs, data=social_01, family="binomial")
+summary(logistic_simple)
+
+#Brief Interpretation:
+#The intercept is the log(odds) a person will be Addicted.
+#Each one unit change in the number of snapchat_hrs will increase the log odds of getting addicted by 0.34104.
+#Each one unit change in the whatsapp_hrs will increase the log odds of getting addicted by 0.02078.
+#Even the p-value states that, both these attributes are quite significant in determining the addiction.
+#The interpretation of telegram_hrs is different.
+#Getting telegram_hrs change by one unit will decrease the log odds of getting addicted by -0.68139.
+#Difference between Null deviance and Residual deviance tells us that the model is a good fit.
+#Greater the difference means better the model.
+
+#Prediction by Logistic Regression
+#We will be able to see the probabilities of each person's addiction predicted by Logistic Regression.
+predicted.data <- data.frame(probability.of.Outcome=logistic_simple$fitted.values)
+predicted.data
+
+#Rearranging the rows of the predicted data based on the values in the probability.of.Outcome column in ascending order.
+#Adding a new column called rank to the predicted data.
+predicted.data <- data.frame(probability.of.Outcome=logistic_simple$fitted.values,Outcome=social_01$social_media_addiction)
+predicted.data <- predicted.data[order(predicted.data$probability.of.Outcome, decreasing=FALSE),]
+predicted.data$rank <- 1:nrow(predicted.data)
+
+#Lastly, we can plot the predicted probabilities for each sample having addicted/not-addicted and color by whether or not they actually have addiction.
+ggplot(data=predicted.data, aes(x=rank, y=probability.of.Outcome)) +
+  geom_point(aes(color=Outcome), alpha=1, shape=4, stroke=2) +
+  xlab("Index") +
+  ylab("Predicted probability of getting addiction")
+
+#Brief Interpretation:
+#We know that as probability of getting addiction increases, a person has greater chance of not having addiction and it is showed with blue color.
+#Similarly, a person having less probability of addiction, has less chance of having of being not addicted.
+#In our case, 0.50 (approximately from the graph), can be identified as the cut-off or threshold of having addiction and not having addiction.
+
+#From Caret
+pdata <- predict(logistic_simple,newdata=social_01,type="response" )
+pdata
+pdataF <- as.factor(ifelse(test=as.numeric(pdata>0.5) == 1, yes="Not Addicted", no="Addicted"))
+pdataF
+
+#Confusion Matrix
+confusionMatrix(pdataF, social_01$social_media_addiction)
+
+#Brief Interpretation
+#81 + 52 = 133 were predicted as Addicted and Not Addicted correctly (diagonal)
+#19 + 23 = 42 were predicted incorrectly (off-diagonal).
+#The accuracy is reported as 0.76, which means that the model correctly predicted around 76% of the instances.
+#The NIR is reported as 0.5714, which is the accuracy that would be achieved by always predicting Addicted Class.
+#A higher kappa value indicates a better agreement between the model's predictions and the actual values. 
+#In our case, the kappa is reported as 0.5067, which indicates moderate agreement between model's prediction and actual prediction.
+#Sensitivity is reported as 0.8100, indicating that the model correctly predicted around 81.00% of the instances of class Addicted.
+#Specificity is reported as 0.6833, indicating that the model correctly predicted around 69.33% of the instances of class Not-Addicted.
+#Balanced Accuracy is the average of Sensitivity and Specificity.
+#We got balanced accuracy as 0.7517
+
+#ROC
+roc(social_01$social_media_addiction,logistic_simple$fitted.values,plot=TRUE)
+par(pty = "s")
+roc(social_01$social_media_addiction,logistic_simple$fitted.values,plot=TRUE)
+
+#Brief Interpretation
+#ROC curve is a graphical plot which shows the trade-off between the true positive rate (Sensitivity) and the false positive rate (Specificity).
+#Higher value indicates better overall model performance.
+#The AUC is reported as 0.8396, indicating that the model has good discriminatory power with an AUC value close to 1, suggesting that it can effectively distinguish between the two classes (Addicted and Not-Addicted) based on the predicted probabilities from the logistic regression model.
+
+
+#We created a completely new data frame to check that how our model predicts?
+#Predicting the Outcome based on our logistic model for some new data
+new_data <- data.frame(
+  whatsapp_hrs = c(2, 4, 6),
+  instagram_hrs = c(3, 6, 9),
+  snapchat_hrs = c(0.5, 1, 0.75),
+  telegram_hrs = c(0.01, 0.05, 0),
+  facebook_messenger_hrs = c(0, 0, 0.5),
+  be_real_hrs = c(1, 0, 0),
+  tik_tok_hrs = c(2, 0, 1),
+  we_chat_hrs = c(1, 0, 0),
+  twitter_hrs = c(1, 0.5, 0.1),
+  linkedin_hrs = c(1, 2, 4),
+  messages_hrs = c(0.5, 0.2, 0.6)
+)
+
+#Printing out our new data
+new_data
+
+# Replacing the values with the values of our test data
+predicted_outcome <- predict(logistic_simple, newdata = new_data, type = "response")
+print(predicted_outcome)
+
+#We got results as follows:
+#1. For 1st, we got probability of 0.6916, which means that the person was predicted as Not-Addictive.
+#2. For 2nd, we got probability of 0.4801, which means that the person was predicted as Addictive (Moderately).
+#3. For 3rd, we got probability of 0.2511, which means that the person was predicted as Addictive (Highly).
+```
+
