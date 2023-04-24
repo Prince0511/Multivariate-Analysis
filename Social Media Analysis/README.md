@@ -44,8 +44,12 @@ Number of times opened (hourly intervals) -> The number of times the social medi
 Social Media Addiction -> A binary indicator indicating whether the individual is addicted or not addicted to social media, based on a predefined threshold of app openings (e.g., 105 times per week). -> Binary
 
 
+
+
 Questions that I tried to answer (Hypothesis):
 
 How time spent on social media reveals underlying pattern on addiction?
+
 Are we able to distinguish between different people’s choices based on the time spent on app?
+
 Does time spent on each app really counts towards person's being addicted?
