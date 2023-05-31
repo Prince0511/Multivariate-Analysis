@@ -46,10 +46,8 @@ Social Media Addiction -> A binary indicator indicating whether the individual i
 
 
 
-Questions that I tried to answer (Hypothesis):
+📊 Hypotheses:
 
-How time spent on social media reveals underlying pattern on addiction?
-
-Are we able to distinguish between different people’s choices based on the time spent on app?
-
-Does time spent on each app really counts towards person's being addicted?
+💻 Time spent on social media reveals underlying patterns of addiction.
+🤔 Time spent on each app can distinguish between different people's choices.
+⌛️ Time spent on each app counts towards a person's addiction level.
