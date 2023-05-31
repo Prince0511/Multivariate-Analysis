@@ -23,7 +23,7 @@ Snapchat (hrs) -> The number of hours spent on Snapchat during the specified wee
 
 Telegram (hrs) -> The number of hours spent on Telegram during the specified week. -> Integer (hrs) 
 
-acebook/Messenger (hrs) -> The number of hours spent on Facebook/Messenger during the specified week. -> Integer (hrs) 
+Facebook/Messenger (hrs) -> The number of hours spent on Facebook/Messenger during the specified week. -> Integer (hrs) 
 
 BeReal (hrs) -> The number of hours spent on BeReal during the specified week. -> Integer (hrs) 
 
