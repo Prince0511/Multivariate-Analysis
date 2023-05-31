@@ -1,3 +1,4 @@
+
 # Social Media Analysis
 
 📊 Dataset Source:
@@ -9,22 +10,27 @@
 - The goal was to determine if individuals are addicted to social media.  
 - Addiction/non-addiction classification was based on a threshold of 105 app openings.  
 
+
 📱💻 Data Collection Process:
 
 - Manual tracking of app usage duration on mobile phones.
 - Weekly monitoring of social media app openings.
 - Records were maintained to collect data on usage frequency.
+
+
 🎯 Objective:
 
 - Assess the addiction levels of individuals to social media.
 - Determine if the frequency of app openings indicates addiction.
 - Establish a threshold of 105 app openings to classify addiction/non-addiction.
 
+
 📊 Spreadsheet of Data Analysis 📈
 
 https://docs.google.com/spreadsheets/d/1acMUlnd25q6ShvsT7xXkUGurXKCDO4MnKu99ftDQ-DI/edit#gid=0
 
-Data Dictionary:
+
+📚 Data Dictionary:
 
 - Student -> The name of the student who provided the data -> String 
 - Week -> The timeframe of the data collection, typically a one-week period. -> Date 
@@ -42,6 +48,7 @@ Data Dictionary:
 - Total Social Media Screen Time (hrs) -> The total number of hours spent on all social media apps combined during the specified week. -> Integer (hrs) 
 - Number of times opened (hourly intervals) -> The number of times the social media apps were opened in hourly intervals during the specified week. -> Integer (count)
 - Social Media Addiction -> A binary indicator indicating whether the individual is addicted or not addicted to social media, based on a predefined threshold of app openings (e.g., 105 times per week). -> Binary
+
 
 📊 Hypotheses:
 
