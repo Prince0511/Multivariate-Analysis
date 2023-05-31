@@ -1,0 +1,46 @@
+########################  Survived #############################
+
+#Importing the dataset
+library(readr)
+Bumpus_sparrows <- read_csv("D:/MITA/SPRING/Multivariate Analysis/Bumpus_sparrows.csv")
+View(Bumpus_sparrows)
+Bumpus_sparrows
+
+#Renaming te dataset
+sparr <- Bumpus_sparrows
+sparr
+
+#Splitting for Survived Sparrow
+survived <- subset(sparr, Survivorship %in% c('S'))
+survived
+
+#We will drop column 1 as it does not contain a number
+survived.num <- survived[,-1]
+survived.num
+
+#Computing means for each variable in data frame
+colMeans(survived.num)
+
+#Covariance Matrix
+cov(survived.num)
+
+#Correlation Matrix
+cor(survived.num)
+
+####################### Not Survived #############################
+#Splitting for Non Survived Sparrow
+not_survived <- subset(sparr, Survivorship %in% c('NS'))
+not_survived
+
+#We will drop column 1 as it does not contain a number
+not_survived.num <- not_survived[,-1]
+not_survived.num
+
+#Computing means for each variable in data frame
+colMeans(not_survived.num)
+
+#Covariance Matrix
+cov(not_survived.num)
+
+#Correlation Matrix
+cor(not_survived.num)
